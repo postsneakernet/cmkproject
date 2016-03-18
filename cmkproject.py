@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import os, sys, shutil
 
 
@@ -117,8 +119,8 @@ def get_source_name():
 
 
 def main():
-    project_root = "" # set before use
-    author = "author"
+    project_root = os.environ.get('C_PROJECT_ROOT', "") # set before use
+    author = os.environ.get('C_PROJECT_AUTHOR', "author")
 
     project_type = ""
     project_name = ""
