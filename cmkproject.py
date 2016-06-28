@@ -6,7 +6,7 @@ import os, sys, shutil
 src = os.path.dirname(os.path.realpath(__file__)) + "/src/"
 
 def usage():
-    print("Usage: cmkproject.py c|cpp project [source [t (if c++ template)]]")
+    print("Usage: cmkproject.py c|cpp root|directory project [source [t (if cpp)]]")
     sys.exit()
 
 
@@ -78,12 +78,9 @@ def mk_project_w_source(dst, author, project_type, project_name, source_name):
     update_file(dst + header, 1, "// " + header + "\n")
     update_file(dst + header, 2, "// " + author + "\n")
     update_file(dst + header, 3, "// " + source_name + " declaration\n")
-    update_file(dst + header, 5, "#ifndef " + source_name.upper() +
-            header_ext + "\n")
-    update_file(dst + header, 6, "#define " + source_name.upper() +
-            header_ext + "\n")
-    update_file(dst + header, 10, "#endif // " + source_name.upper() +
-            header_ext + "\n")
+    update_file(dst + header, 5, "#ifndef " + source_name.upper() + header_ext + "\n")
+    update_file(dst + header, 6, "#define " + source_name.upper() + header_ext + "\n")
+    update_file(dst + header, 10, "#endif // " + source_name.upper() + header_ext + "\n")
 
     update_file(dst + source, 1, "// " + source + "\n")
     update_file(dst + source, 2, "// " + author + "\n")
@@ -93,68 +90,77 @@ def mk_project_w_source(dst, author, project_type, project_name, source_name):
     update_file(dst + main_temp, 6, "#include " + '"' + header + '"\n')
 
     if project_type != 't':
-        update_file(dst + "makefile", 5, "OBJS = " + source_name +
-                ".o main.o\n")
-        update_file(dst + "makefile", 13,
-                source_name + ".o: " + source + " " + header + "\n")
-        update_file(dst + "makefile", 14,
-                "main.o: " + main_temp + " " + header + "\n")
+        update_file(dst + "makefile", 5, "OBJS = " + source_name + ".o main.o\n")
+        update_file(dst + "makefile", 13, source_name + ".o: " + source + " " + header + "\n")
+        update_file(dst + "makefile", 14, "main.o: " + main_temp + " " + header + "\n")
     else:
         # special stuff for template
         update_file(dst + header, 8, "#include " + '"' + source + '"' + "\n")
-        update_file(dst + "makefile", 14,
-                "main.o: " + main_temp + " " + header + " " + source + "\n")
+        update_file(dst + "makefile", 14, "main.o: " + main_temp + " " + header + " " + source + "\n")
 
 
 def get_project_type():
     return sys.argv[1]
 
 
+def get_project_dir():
+    dir = sys.argv[2]
+    if dir == 'root':
+        return ""
+    else:
+        return dir
+
+
 def get_project_name():
-    return sys.argv[2]
-
-
-def get_source_name():
     return sys.argv[3]
 
 
+def get_source_name():
+    return sys.argv[4]
+
+
 def main():
-    project_root = os.environ.get('C_PROJECT_ROOT', "") # set before use
+    project_root = os.environ.get('C_PROJECT_ROOT', "") # set before use with trailing /
     author = os.environ.get('C_PROJECT_AUTHOR', "author")
 
     project_type = ""
+    project_dir = ""
     project_name = ""
 
     if not project_root:
         print("Please set the project root first in cmkproject.py")
         return
 
-    if len(sys.argv) <= 2:
+    if len(sys.argv) < 4 or len(sys.argv) > 6:
         usage()
-    else:
-        project_type = get_project_type()
-        if project_type != 'c' and project_type != 'cpp':
-            usage()
-        project_name = get_project_name()
 
-    if len(sys.argv) == 3:
+    project_type = get_project_type()
+    if project_type != 'c' and project_type != 'cpp':
+        usage()
+
+    project_dir = get_project_dir()
+    if project_dir:
+        project_root += project_dir + '/'
+
+    project_name = get_project_name()
+
+    if len(sys.argv) == 4:
         project_path = create_project_dir(project_root + project_name)
         mk_project(project_path, author, project_type, project_name)
-    elif len(sys.argv) == 4:
+    elif len(sys.argv) == 5:
         project_path = create_project_dir(project_root + project_name)
         source_name = get_source_name()
-        mk_project_w_source(project_path, author, project_type, project_name,
-                source_name)
-    elif len(sys.argv) == 5:
-        if sys.argv[4] != 't' or project_type != 'cpp':
+        mk_project_w_source(project_path, author, project_type, project_name, source_name)
+    elif len(sys.argv) == 6:
+        if sys.argv[5] != 't' or project_type != 'cpp':
             usage()
         project_path = create_project_dir(project_root + project_name)
         project_type = 't'
         source_name = get_source_name()
-        mk_project_w_source(project_path, author, project_type, project_name,
-                source_name)
-    else:
-        usage()
+        mk_project_w_source(project_path, author, project_type, project_name, source_name)
+
+    print("Created {} project located in".format(project_type))
+    print(project_path)
 
 
 if __name__ == "__main__":
